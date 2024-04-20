@@ -55,12 +55,14 @@ for line in range(len(sorted_m)):
         if far_x - cur_x < 30:
                 sorted_m.pop(line + 2)
 
-cv2.line(img,(367,48),(367,0),(0,0,255),2)
-cv2.line(img,(660,48),(660,0),(0,0,255),2)
-cv2.line(img,(885,48),(885,0),(0,0,255),2)
-cv2.line(img,(920,48),(920,0),(0,0,255),2)
+sorted_m.append(((367, 48), (367, 0)))
+sorted_m.append(((660, 48), (660, 0)))
+sorted_m.append(((885, 48), (885, 0)))
+sorted_m.append(((920, 48), (920, 0)))
 sorted_m.pop(5)
 sorted_m.pop(17)
+sorted_m = sorted(sorted_m, key=lambda x: x[0][0])
+
 
 
 #     drawing lines
