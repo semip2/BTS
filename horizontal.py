@@ -95,7 +95,7 @@ for img in p:
     if contains_white(img, min_area_threshold):
         pix.append(img)
     
-# print(len(pix))
-# for i in range(len(pix)):
-#     cv2.imwrite('part' +str(i)+'.jpg',pix[i])
+print(len(pix))
+for i in range(len(pix)):
+    cv2.imwrite('part' +str(i)+'.jpg',pix[i])
 
