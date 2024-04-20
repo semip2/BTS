@@ -73,10 +73,10 @@ def main():
 
     # Display or save the results
     for i, segment in enumerate(vertical_segments):
-        cv2.imshow(f'vertical_part_{i}.jpg', segment)
+        cv2.imwrite(f'vertical_part_{i}.jpg', segment)
 
     for i, segment in enumerate(horizontal_segments):
-        cv2.imshow(f'horizontal_part_{i}.jpg', segment)
+        cv2.imwrite(f'horizontal_part_{i}.jpg', segment)
 
 if __name__ == "__main__":
     main()
