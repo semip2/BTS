@@ -1,3 +1,5 @@
+import os 
+import shutil
 import cv2
 import numpy as np
 import math
@@ -143,6 +145,50 @@ def vertical_segment(img):
     return merged_segments 
 
 
+def segment(img, x_pairs, y_pairs): 
+    print("Starting segmentation") 
+    line_num = 0
+
+    # Create outer directory if it doesn't exist
+    outer_directory = "segments"
+    if not os.path.exists(outer_directory):
+        os.makedirs(outer_directory)
+    else:
+        # Delete all the subdirectories in the outer directory
+        for item in os.listdir(outer_directory):
+            item_path = os.path.join(outer_directory, item)
+            if os.path.isdir(item_path):
+                shutil.rmtree(item_path)
+
+    for y_start, y_end in y_pairs: 
+        char_num = 0 
+        empty_count = 0 
+
+        for x_start, x_end in x_pairs: 
+            segment = img[y_start:y_end, x_start:x_end]
+            total = (y_end - y_start) * (x_end - x_start) 
+            count = np.floor(np.sum(segment) / 255) 
+
+            if (count/total < 0.01): 
+                empty_count += 1 
+                if empty_count > 1: 
+                    break 
+            else: 
+                empty_count = 0 
+
+            directory = f"segments/line{line_num}"
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+
+            cv2.imwrite(f"{directory}/char{char_num}.jpg", segment)
+            char_num += 1 
+
+        line_num += 1 
+
+    print("Finished segmentation") 
+    return 
+
+
 # Load image 
 img = cv2.imread('poem.png') 
 
@@ -172,18 +218,5 @@ for i in range(0, len(y_pairs)):
 
 cv2.imwrite('segmented.jpg', segmented) 
 
-# Segment  
-print("Starting segmentation") 
-line_num = 0
-for y_pair in y_pairs: 
-    char_num = 0 
-    for x_pair in x_pairs: 
-        segment = transformed[y_pair[0]:y_pair[1], x_pair[0]:x_pair[1]]
-        total = (y_pair[1] - y_pair[0]) * (x_pair[1] - x_pair[0]) 
-        count = np.floor(np.sum(segment) / 255) 
-
-        if (count/total > 0.01): 
-            cv2.imwrite(f"segments/l{line_num}c{char_num}.jpg", segment) 
-            char_num += 1 
-    line_num += 1 
-print("Finished segmentation") 
+# Segment 
+segment(transformed, x_pairs, y_pairs) 
