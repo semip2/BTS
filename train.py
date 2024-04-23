@@ -38,7 +38,7 @@ train_loader = DataLoader(braille_train, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(braille_val, batch_size=batch_size, shuffle=True)
 test_loader = DataLoader(braille_test, batch_size=batch_size, shuffle=True)
 
-patience = 5
+patience = 10
 curr_count_to_patience = 0
 global_min_loss = 999999999
 epoch = 0
