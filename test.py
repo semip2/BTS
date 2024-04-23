@@ -1,70 +1,73 @@
 import torch
 import glob
-import numpy as np
-import matplotlib.pyplot as plt
-import random
 import os
 from PIL import Image
 from torch.nn.functional import softmax
 import torchvision.transforms as transforms
+import matplotlib.pyplot as plt
+import math
+from natsort import natsorted
+
+# Custom transform for inverting the colors
+class InvertColors:
+    def __call__(self, img):
+        return 1 - img  # Subtract image tensor from 1 to invert colors
 
 def test_images():
     save_path = "final_model.pth"
-    test_dir = "braille_test/"
-
-    # Get all subdirectories in the test directory
-    label_dirs = [d for d in os.listdir(test_dir) if os.path.isdir(os.path.join(test_dir, d))]
-
-    # Shuffle the label directories
-    random.shuffle(label_dirs)
-
-    # Sample 10 random label directories
-    label_dirs = label_dirs[:10]
+    base_dir = "example/segments/"
+    line_dirs = natsorted(glob.glob(os.path.join(base_dir, "line*")))
 
     # Load saved model
     model = torch.hub.load('pytorch/vision:v0.10.0', 'alexnet', pretrained=True)
     model.load_state_dict(torch.load(save_path))
     model.eval()
 
-    # Dictionary for all labels
-    label_dict = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    # Define the transformation pipeline
+    transform = transforms.Compose([
+        transforms.Resize((224, 224)),  # Resize image to fit AlexNet input size
+        transforms.Grayscale(num_output_channels=3),  # Convert grayscale to RGB
+        transforms.ToTensor(),           # Convert image to tensor
+        InvertColors(),
+        transforms.Normalize(            # Normalize image
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225]
+        )
+    ])
 
-    _, axs = plt.subplots(2, 5, figsize=(20, 10))
-    axs = axs.ravel()  # Flatten the 2D array of axes
+    for line_dir in line_dirs:
+        # Iterate through each file in the directory recursively
+        image_files = natsorted(glob.glob(os.path.join(line_dir, "*.jpg")))
 
-    for i, label_dir in enumerate(label_dirs):
-        # Get a random image from the label directory
-        image_files = glob.glob(os.path.join(test_dir, label_dir, "*.jpg"))
-        random_image_path = random.choice(image_files)
+        if not image_files:  # Check if the list is empty
+            print(f"No images found in directory: {line_dir}")
+            continue
 
-        # Preprocessing - should we change this?
-        image = Image.open(random_image_path).convert("L")
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),  # Resize image to fit AlexNet input size
-            transforms.Grayscale(num_output_channels=3),  # Convert grayscale to RGB
-            transforms.ToTensor(),           # Convert image to tensor
-            transforms.Normalize(            # Normalize image
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225]
-            )
-        ])
-        image = transform(image)
+        num_images = len(image_files)
+        cols = min(num_images, 10)  # Limit to 10 images per row
+        rows = math.ceil(num_images / cols)
 
-        # Perform inference
-        with torch.no_grad():
-            output = model(image.unsqueeze(0))
-            probabilities = softmax(output, dim=1)[0]
-            predicted_label_index = torch.argmax(probabilities).item()
-            predicted_label = label_dict[predicted_label_index]
-            actual_label = os.path.basename(label_dir)
+        plt.figure(figsize=(24, 4 * rows))
+        for i, image_path in enumerate(image_files):
+            # Load and preprocess the image
+            image = Image.open(image_path).convert("L")
+            image = transform(image)
 
-        # Plot image and predicted label
-        axs[i].imshow(image.permute(1, 2, 0))
-        axs[i].set_title(f"Actual Label: {actual_label}\nPredicted Label: {predicted_label}")
-        axs[i].axis('off')
+            # Perform inference
+            with torch.no_grad():
+                output = model(image.unsqueeze(0))
+                probabilities = softmax(output, dim=1)[0]
+                predicted_label_index = torch.argmax(probabilities).item()
+                predicted_label = chr(predicted_label_index + 65)  # Assuming labels are A-Z
 
-    plt.tight_layout()
-    plt.show()
+            # Plot results
+            plt.subplot(rows, cols, i + 1)
+            plt.imshow(image.permute(1, 2, 0), cmap='gray')
+            plt.title(f"File: {os.path.basename(image_path)}\nPredicted: {predicted_label}")
+            plt.axis('off')
+
+        plt.tight_layout()
+        plt.show()
 
 if __name__ == "__main__":
     test_images()
